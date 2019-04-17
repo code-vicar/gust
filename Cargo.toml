@@ -1,0 +1,8 @@
+[package]
+name = "gust"
+version = "0.1.0"
+edition = "2018"
+authors = ["Scott Vickers <scott.w.vickers@gmail.com>"]
+
+[dependencies]
+gust-macros = { path = "./lib/gust-macros", version = "0.1.0" }
