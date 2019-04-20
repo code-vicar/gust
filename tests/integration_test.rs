@@ -38,10 +38,10 @@ fn make_graph() -> Graph<MyOwnVertex, EdgeData> {
         .with_vertices(vertices);
 
     let mut graph = graph_builder.build();
-    graph.add_edge_with_data(21, 4, Some(EdgeData {
+    graph.add_edge_with_data(&21, &4, Some(EdgeData {
         weight: 10
     }));
-    graph.add_edge(4, 21);
+    graph.add_edge(&4, &21);
     graph
 }
 

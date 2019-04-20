@@ -26,13 +26,13 @@ where T: HasID {
     self.vertices.contains_key(&left) && self.vertices.contains_key(&right)
   }
 
-  pub fn add_edge_with_data(&mut self, left: T::ID_TYPE, right: T::ID_TYPE, edge_data: Option<X>) -> bool {
+  pub fn add_edge_with_data(&mut self, left: &T::ID_TYPE, right: &T::ID_TYPE, edge_data: Option<X>) -> bool {
     if !self.can_connect(&left, &right) {
       return false
     }
     let edge = Edge {
       from: left.clone(),
-      to: right,
+      to: right.clone(),
       meta: edge_data
     };
     match self.adjacencies.get_mut(&left) {
@@ -40,14 +40,14 @@ where T: HasID {
         a_adjacent.push(edge);
       }
       None => {
-        self.adjacencies.insert(left, vec![edge]);
+        self.adjacencies.insert(left.clone(), vec![edge]);
       }
     }
     return true
   }
 
   // Adds edge between left and right vertex, one direction.
-  pub fn add_edge(&mut self, left: T::ID_TYPE, right: T::ID_TYPE) -> bool {
+  pub fn add_edge(&mut self, left: &T::ID_TYPE, right: &T::ID_TYPE) -> bool {
     self.add_edge_with_data(left, right, None)
   }
 
@@ -58,6 +58,13 @@ where T: HasID {
   pub fn vertices(&self) -> &HashMap<T::ID_TYPE, T> {
     let ref v = self.vertices;
     v
+  }
+
+  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> &[Edge<T, X>] {
+    match self.adjacencies.get(id) {
+      Some(adj) => adj.as_slice(),
+      None => &[]
+    }
   }
 }
 
