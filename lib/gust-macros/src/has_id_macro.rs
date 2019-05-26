@@ -57,8 +57,7 @@ fn is_id_attr(attr: &syn::Attribute) -> bool {
 
 pub fn impl_has_id_macro(ast: &syn::DeriveInput) -> TokenStream {
     let ident = &ast.ident;
-    let generics = &ast.generics;
-    let where_clause = &ast.generics.where_clause;
+    let (impl_generics, ty_generics, where_clause) = &ast.generics.split_for_impl();
     let id_field = get_id_field(&ast.data).unwrap_or_else(||
         panic!("HasID is expecting an attribute marked with #[gust(id)]")
     );
@@ -67,7 +66,7 @@ pub fn impl_has_id_macro(ast: &syn::DeriveInput) -> TokenStream {
     );
     let id_type = &id_field.ty;
     let gen = quote! {
-        impl HasID for #ident #generics #where_clause {
+        impl #impl_generics HasID for #ident #ty_generics #where_clause {
             type ID_TYPE = #id_type;
 
             fn get_id(&self) -> &Self::ID_TYPE {

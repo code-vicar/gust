@@ -1,141 +1,85 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Keys;
 
 use super::traits::HasID;
-use super::edge::Edge;
+use super::edge::*;
 
 #[derive(Debug)]
-pub struct Graph<T, X>
-where T: HasID {
-  vertices: HashMap<T::ID_TYPE, T>,
-  adjacencies: HashMap<T::ID_TYPE, Vec<Edge<T, X>>>,
+pub struct Graph<T>
+where
+  T: HasID {
+    edges: EdgeMap<T>,
+    adjacencies: HashMap<T::ID_TYPE, Vec<EdgeKey>>,
 }
 
-impl<T, X> Graph<T, X>
-where T: HasID {
-  pub fn new(graph_options: GraphBuilder<T>) -> Graph<T, X> {
-    let vertices = graph_options.vertices;
-    let adjacencies = HashMap::new();
-    Graph { vertices, adjacencies }
-  }
-
-  pub fn add_vertex(&mut self, vertex: T) {
-    self.vertices.insert(vertex.get_id().to_owned(), vertex);
-  }
-
-  fn can_connect(&self, left: &T::ID_TYPE, right: &T::ID_TYPE) -> bool {
-    self.vertices.contains_key(&left) && self.vertices.contains_key(&right)
-  }
-
-  pub fn add_edge_with_data(&mut self, left: &T::ID_TYPE, right: &T::ID_TYPE, edge_data: Option<X>) -> bool {
-    if !self.can_connect(&left, &right) {
-      return false
+impl<T> Graph<T>
+where
+  T: HasID {
+  pub fn new() -> Graph<T> {
+    Graph {
+      edges: EdgeMap::new(),
+      adjacencies: HashMap::new(),
     }
-    let edge = Edge {
-      from: left.clone(),
-      to: right.clone(),
-      meta: edge_data
-    };
-    match self.adjacencies.get_mut(&left) {
-      Some(a_adjacent) => {
-        a_adjacent.push(edge);
-      }
+  }
+
+  fn add_edge_base(&mut self, from: T::ID_TYPE, to: T::ID_TYPE, bidi: bool) -> EdgeKey {
+    let key = self.edges.insert(Edge::new(
+      from.clone(),
+      to.clone(),
+      bidi,
+    ));
+    match self.adjacencies.get_mut(&from) {
+      Some(edge_keys) => {
+        edge_keys.push(key);
+      },
       None => {
-        self.adjacencies.insert(left.clone(), vec![edge]);
+        self.adjacencies.insert(from, vec![key]);
       }
     }
-    return true
+    if bidi {
+      match self.adjacencies.get_mut(&to) {
+        Some(edge_keys) => {
+          edge_keys.push(key);
+        },
+        None => {
+          self.adjacencies.insert(to, vec![key]);
+        }
+      }
+    }
+    key
   }
 
-  // Adds edge between left and right vertex, one direction.
-  pub fn add_edge(&mut self, left: &T::ID_TYPE, right: &T::ID_TYPE) -> bool {
-    self.add_edge_with_data(left, right, None)
+  pub fn add_edge(&mut self, from: T::ID_TYPE, to: T::ID_TYPE) -> EdgeKey {
+    self.add_edge_base(from, to, false)
+  }
+
+  pub fn add_edge_bidi(&mut self, from: T::ID_TYPE, to: T::ID_TYPE) -> EdgeKey {
+    self.add_edge_base(from, to, true)
   }
 
   pub fn length(&self) -> usize {
-    self.vertices.len()
+    self.adjacencies.keys().len()
   }
 
-  pub fn vertices(&self) -> &HashMap<T::ID_TYPE, T> {
-    let ref v = self.vertices;
-    v
+  pub fn vertices(&self) -> Keys<T::ID_TYPE, Vec<EdgeKey>> {
+    self.adjacencies.keys()
   }
 
-  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> &[Edge<T, X>] {
+  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> Vec<&Edge<T>> {
     match self.adjacencies.get(id) {
-      Some(adj) => adj.as_slice(),
-      None => &[]
-    }
-  }
-}
-
-impl<T, X> Graph<T, X> where
-  T: HasID + Clone,
-{
-  pub fn new_clone(graph_options: &GraphBuilder<T>) -> Graph<T, X> {
-    let graph_options_clone = graph_options.clone();
-    let vertices = graph_options_clone.vertices;
-    let adjacencies = HashMap::new();
-    Graph { vertices, adjacencies }
-  }
-}
-
-/*
-*  Graph Builder
-*/
-pub struct GraphBuilder<T: HasID> {
-  vertices: HashMap<T::ID_TYPE, T>
-}
-
-impl<T> Clone for GraphBuilder<T> where
-  T: HasID + Clone,
-{
-  fn clone(&self) -> Self {
-    GraphBuilder {
-      vertices: self.vertices.clone()
-    }
-  }
-}
-
-impl<T: HasID> GraphBuilder<T> {
-  pub fn new() -> GraphBuilder<T> {
-    GraphBuilder {
-      vertices: HashMap::new()
+      Some(edge_keys) => {
+        let mut edges = Vec::new();
+        for key in edge_keys {
+          edges.push(self.edges.get(key).unwrap());
+        }
+        edges
+      }
+      None => Vec::new()
     }
   }
 
-  pub fn with_vertex(mut self, v: T) -> GraphBuilder<T> {
-    self.vertices.insert(v.get_id().to_owned(), v);
-    self
-  }
-
-  pub fn with_vertices(mut self, vertices: Vec<T>) -> GraphBuilder<T> {
-    for v in vertices {
-      self.vertices.insert(v.get_id().to_owned(), v);
-    }
-    self
-  }
-
-  pub fn build<X>(self) -> Graph<T, X> {
-    Graph::new(self)
-  }
-}
-
-impl <T: HasID + Clone> GraphBuilder<T> {
-  pub fn with_vertex_clone(mut self, v: &T) -> GraphBuilder<T> {
-    let v_clone = v.clone();
-    self.vertices.insert(v_clone.get_id().to_owned(), v_clone);
-    self
-  }
-
-  pub fn with_vertices_clone(mut self, vertices: &Vec<T>) -> GraphBuilder<T> {
-    let cloned = vertices.clone();
-    for v in cloned {
-      self.vertices.insert(v.get_id().to_owned(), v);
-    }
-    self
-  }
-
-  pub fn build_clone<X>(&self) -> Graph<T, X> {
-    Graph::new_clone(self)
+  pub fn has_edge(&self, from: &T::ID_TYPE, to: &T::ID_TYPE) -> bool {
+    let edges = self.get_adjacent(from);
+    edges.iter().any(|edge| edge.leads_to(to))
   }
 }
