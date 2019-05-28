@@ -9,7 +9,7 @@ pub struct Graph<T>
 where
   T: HasID {
     edges: EdgeMap<T>,
-    adjacencies: HashMap<T::ID_TYPE, Vec<EdgeKey>>,
+    adjacencies: HashMap<T::ID_TYPE, Vec<(EdgeKey, PathDirection)>>,
 }
 
 impl<T> Graph<T>
@@ -29,20 +29,20 @@ where
       bidi,
     ));
     match self.adjacencies.get_mut(&from) {
-      Some(edge_keys) => {
-        edge_keys.push(key);
+      Some(adjacencies) => {
+        adjacencies.push((key, PathDirection::Forward));
       },
       None => {
-        self.adjacencies.insert(from, vec![key]);
+        self.adjacencies.insert(from, vec![(key, PathDirection::Forward)]);
       }
     }
     if bidi {
       match self.adjacencies.get_mut(&to) {
         Some(edge_keys) => {
-          edge_keys.push(key);
+          edge_keys.push((key, PathDirection::Backward));
         },
         None => {
-          self.adjacencies.insert(to, vec![key]);
+          self.adjacencies.insert(to, vec![(key, PathDirection::Backward)]);
         }
       }
     }
@@ -61,25 +61,37 @@ where
     self.adjacencies.keys().len()
   }
 
-  pub fn vertices(&self) -> Keys<T::ID_TYPE, Vec<EdgeKey>> {
+  pub fn vertices(&self) -> Keys<T::ID_TYPE, Vec<(EdgeKey, PathDirection)>> {
     self.adjacencies.keys()
   }
 
-  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> Vec<&Edge<T>> {
+  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> Vec<&<T as HasID>::ID_TYPE> {
     match self.adjacencies.get(id) {
-      Some(edge_keys) => {
-        let mut edges = Vec::new();
-        for key in edge_keys {
-          edges.push(self.edges.get(key).unwrap());
+      Some(adjacencies) => {
+        let mut paths = Vec::new();
+        for (edge_key, dir) in adjacencies {
+          let edge = self.edges.get(edge_key).unwrap();
+          paths.push(&edge.get_path(dir).to);
         }
-        edges
+        paths
       }
       None => Vec::new()
     }
   }
 
-  pub fn has_edge(&self, from: &T::ID_TYPE, to: &T::ID_TYPE) -> bool {
-    let edges = self.get_adjacent(from);
-    edges.iter().any(|edge| edge.leads_to(to))
+  pub fn get_edge(&self, from: &T::ID_TYPE, to: &T::ID_TYPE) -> Option<&Edge<T>> {
+    match self.adjacencies.get(from) {
+      Some(adjacencies) => {
+        for (edge_key, dir) in adjacencies {
+          let edge = self.edges.get(edge_key).unwrap();
+          let path = edge.get_path(dir);
+          if &path.to == to {
+            return Some(edge);
+          }
+        }
+        None
+      }
+      None => None
+    }
   }
 }

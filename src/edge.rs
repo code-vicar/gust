@@ -1,58 +1,78 @@
 use super::traits::HasID;
 use std::collections::HashMap;
 
+#[derive(Debug, Copy, Clone)]
+pub enum PathDirection {
+  Forward,
+  Backward
+}
+
+#[derive(Debug)]
+pub struct EdgePath<T: HasID> {
+  pub from: T::ID_TYPE,
+  pub to: T::ID_TYPE,
+}
+
+impl<T: HasID> Clone for EdgePath<T> {
+  fn clone(&self) -> Self {
+    EdgePath {
+      from: self.from.clone(),
+      to: self.to.clone(),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct Edge<T: HasID> {
-  from: T::ID_TYPE,
-  to: T::ID_TYPE,
-  bidi: bool
+  pub forward: EdgePath<T>,
+  pub backward: Option<EdgePath<T>>,
 }
 
 impl<T: HasID> Edge<T> {
   pub fn new(from: T::ID_TYPE, to: T::ID_TYPE, bidi: bool) -> Edge<T> {
-    Edge {
+    let mut backward = None;
+    if bidi {
+      backward = Some(EdgePath {
+        from: to.clone(),
+        to: from.clone(),
+      })
+    }
+    let forward = EdgePath {
       from,
       to,
-      bidi,
+    };
+    Edge {
+      forward,
+      backward
     }
   }
 
-  pub fn leads_to(&self, vertex_id: &T::ID_TYPE) -> bool {
-    if !self.bidi {
-      return &self.to == vertex_id
+  pub fn get_path(&self, dir: &PathDirection) -> &EdgePath<T> {
+    match dir {
+      PathDirection::Forward => &self.forward,
+      PathDirection::Backward => {
+        match &self.backward {
+          Some(path) => path,
+          _ => panic!()
+        }
+      }
     }
-    return &self.to == vertex_id || &self.from == vertex_id
   }
 
-  pub fn leads_from(&self, vertex_id: &T::ID_TYPE) -> bool {
-    if !self.bidi {
-      return &self.from == vertex_id
-    }
-    return &self.from == vertex_id || &self.to == vertex_id
+  pub fn get_connected_id(&self, dir: &PathDirection) -> &<T as HasID>::ID_TYPE {
+    &self.get_path(dir).to
   }
 
-  pub fn leads_from_to(&self, from: &T::ID_TYPE, to: &T::ID_TYPE) -> bool {
-    self.leads_from(from) && self.leads_to(to)
-  }
-
-  pub fn set_connection(&mut self, from: T::ID_TYPE, to: T::ID_TYPE) {
-    self.from = from;
-    self.to = to;
-  }
-
-  pub fn set_connection_bi(&mut self, from: T::ID_TYPE, to: T::ID_TYPE) {
-    self.from = from;
-    self.to = to;
-    self.bidi = true;
+  pub fn is_bidirectional(&self) -> bool {
+    self.backward.is_some()
   }
 }
 
 impl<T: HasID> Clone for Edge<T> {
   fn clone(&self) -> Self {
     Edge {
-      from: self.from.clone(),
-      to: self.to.clone(),
-      bidi: self.bidi
+      forward: self.forward.clone(),
+      backward: self.backward.clone(),
     }
   }
 }

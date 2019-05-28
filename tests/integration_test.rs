@@ -39,14 +39,14 @@ fn graph_get_adjacent() {
   let graph = make_graph();
   let adj = graph.get_adjacent(&4);
   assert_eq!(adj.len(), 2);
-  assert!(adj.iter().any(|edge| edge.leads_from_to(&4, &21)));
-  assert!(adj.iter().any(|edge| edge.leads_from_to(&4, &100)));
+  assert!(adj.iter().any(|adjecent| adjecent == &&21));
+  assert!(adj.iter().any(|adjecent| adjecent == &&100));
 }
 
 #[test]
 fn graph_has_edge() {
   let graph = make_graph();
-  assert!(graph.has_edge(&7, &43));
-  assert!(graph.has_edge(&100, &4));
-  assert!(!graph.has_edge(&7, &100));
+  assert!(graph.get_edge(&7, &43).is_some());
+  assert!(graph.get_edge(&100, &4).is_some());
+  assert!(!graph.get_edge(&7, &100).is_some());
 }
