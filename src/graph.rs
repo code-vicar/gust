@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Keys;
 
-use super::traits::HasID;
+use super::traits::NodeID;
 use super::edge::*;
 
 #[derive(Debug)]
 pub struct Graph<T>
 where
-  T: HasID {
+  T: NodeID {
     edges: EdgeMap<T>,
     adjacencies: HashMap<T::ID_TYPE, Vec<(EdgeKey, PathDirection)>>,
 }
 
 impl<T> Graph<T>
 where
-  T: HasID {
+  T: NodeID {
   pub fn new() -> Graph<T> {
     Graph {
       edges: EdgeMap::new(),
@@ -65,7 +65,7 @@ where
     self.adjacencies.keys()
   }
 
-  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> Vec<&<T as HasID>::ID_TYPE> {
+  pub fn get_adjacent(&self, id: &T::ID_TYPE) -> Vec<&<T as NodeID>::ID_TYPE> {
     match self.adjacencies.get(id) {
       Some(adjacencies) => {
         let mut paths = Vec::new();

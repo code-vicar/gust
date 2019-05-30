@@ -4,11 +4,11 @@ extern crate syn;
 
 use proc_macro::TokenStream;
 
-mod has_id_macro;
-use has_id_macro::*;
+mod node_id_macro;
+use node_id_macro::*;
 
-#[proc_macro_derive(HasID, attributes(gust))]
-pub fn has_id_macro_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(NodeID, attributes(gust))]
+pub fn node_id_macro_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
-    impl_has_id_macro(&ast)
+    impl_node_id_macro(&ast)
 }

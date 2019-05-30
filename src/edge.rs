@@ -1,4 +1,4 @@
-use super::traits::HasID;
+use super::traits::NodeID;
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone)]
@@ -8,12 +8,12 @@ pub enum PathDirection {
 }
 
 #[derive(Debug)]
-pub struct EdgePath<T: HasID> {
+pub struct EdgePath<T: NodeID> {
   pub from: T::ID_TYPE,
   pub to: T::ID_TYPE,
 }
 
-impl<T: HasID> Clone for EdgePath<T> {
+impl<T: NodeID> Clone for EdgePath<T> {
   fn clone(&self) -> Self {
     EdgePath {
       from: self.from.clone(),
@@ -23,12 +23,12 @@ impl<T: HasID> Clone for EdgePath<T> {
 }
 
 #[derive(Debug)]
-pub struct Edge<T: HasID> {
+pub struct Edge<T: NodeID> {
   pub forward: EdgePath<T>,
   pub backward: Option<EdgePath<T>>,
 }
 
-impl<T: HasID> Edge<T> {
+impl<T: NodeID> Edge<T> {
   pub fn new(from: T::ID_TYPE, to: T::ID_TYPE, bidi: bool) -> Edge<T> {
     let mut backward = None;
     if bidi {
@@ -59,7 +59,7 @@ impl<T: HasID> Edge<T> {
     }
   }
 
-  pub fn get_connected_id(&self, dir: &PathDirection) -> &<T as HasID>::ID_TYPE {
+  pub fn get_connected_id(&self, dir: &PathDirection) -> &<T as NodeID>::ID_TYPE {
     &self.get_path(dir).to
   }
 
@@ -68,7 +68,7 @@ impl<T: HasID> Edge<T> {
   }
 }
 
-impl<T: HasID> Clone for Edge<T> {
+impl<T: NodeID> Clone for Edge<T> {
   fn clone(&self) -> Self {
     Edge {
       forward: self.forward.clone(),
@@ -84,14 +84,14 @@ pub struct EdgeKey {
 }
 
 #[derive(Debug)]
-pub struct EdgeMap<T: HasID> {
+pub struct EdgeMap<T: NodeID> {
   cursor: usize,
   free_pool: Vec<EdgeKey>,
   keys: HashMap<usize, EdgeKey>,
   internal_map: HashMap<usize, Edge<T>>
 }
 
-impl<T: HasID> Clone for EdgeMap<T> {
+impl<T: NodeID> Clone for EdgeMap<T> {
   fn clone(&self) -> Self {
     EdgeMap {
       cursor: self.cursor,
@@ -102,7 +102,7 @@ impl<T: HasID> Clone for EdgeMap<T> {
   }
 }
 
-impl<T: HasID> EdgeMap<T> {
+impl<T: NodeID> EdgeMap<T> {
   pub fn new() -> EdgeMap<T> {
     EdgeMap {
       cursor: 0,
